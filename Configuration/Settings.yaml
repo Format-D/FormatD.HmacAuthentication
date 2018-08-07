@@ -1,0 +1,4 @@
+
+FormatD:
+  HmacAuthentication:
+    hmacTimeoutInterval: 3600

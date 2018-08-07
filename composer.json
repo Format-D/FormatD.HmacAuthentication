@@ -1,0 +1,20 @@
+{
+    "name": "formatd/hmac-authentication",
+    "description": "",
+    "type": "neos-package",
+    "require": {
+        "neos/flow": ">=4.0"
+    },
+    "suggest": {
+    },
+    "autoload": {
+        "psr-4": {
+            "FormatD\\HmacAuthentication\\": "Classes/"
+        }
+    },
+    "extra": {
+        "neos": {
+            "package-key": "FormatD.HmacAuthentication"
+        }
+    }
+}
