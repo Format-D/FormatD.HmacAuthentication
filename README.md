@@ -53,10 +53,12 @@ There are two ways how to generate a authentication link:
 Use one of the ViewHelpers...
 
 ```
-<f:link.authenticatedAction action="myAction" controller="MyController">Login to MyWebsite</f:link.authenticatedAction>
+{namespace hmacauth=FormatD\HmacAuthentication\ViewHelpers}
+<hmacauth:link.authenticatedAction action="myAction" controller="MyController">Login to MyWebsite</f:link.authenticatedAction>
 ```
 ```
-<f:uri.authenticatedAction action="myAction" controller="MyController" />
+{namespace hmacauth=FormatD\HmacAuthentication\ViewHelpers}
+<hmacauth:uri.authenticatedAction action="myAction" controller="MyController" />
 ```
 ...or use the hmacService directly in your code:
 ```
@@ -66,7 +68,6 @@ Use one of the ViewHelpers...
 	 * @var \FormatD\HmacAuthentication\Service\HmacService
 	 */
 	protected $hmacService;
-	
 
 	public function myFunction() {
 		$theUserName = 'username';
@@ -77,7 +78,7 @@ Use one of the ViewHelpers...
 
 ## Using only AuthToken:
 
-If you want to use the authToken in your code just use the service
+If you want to use the authToken in your code (for example to authenticate something else) just use the service class
 
 ```
 	$authToken = $this->hmacService->encodeAuthToken($theUserName);
