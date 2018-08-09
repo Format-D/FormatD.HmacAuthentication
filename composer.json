@@ -1,6 +1,6 @@
 {
     "name": "formatd/hmac-authentication",
-    "description": "",
+    "description": "Neos Flow package that adds an authentication provider for authenticating a flow account using a token with a configurable timeout.",
     "type": "neos-package",
     "license": "MIT",
     "require": {
