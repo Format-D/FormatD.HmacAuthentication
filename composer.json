@@ -2,6 +2,7 @@
     "name": "formatd/hmac-authentication",
     "description": "",
     "type": "neos-package",
+    "license": "MIT",
     "require": {
         "neos/flow": ">=4.0"
     },
