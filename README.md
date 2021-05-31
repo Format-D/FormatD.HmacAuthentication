@@ -4,7 +4,7 @@
 This package adds an authentication provider for authenticating a flow account using a token with a configurable timeout.
 Authentication is done by passing username, timestamp and a hmac. For generating this token the package contains some viewhelpers and a Service.
 
-Keep in mind: The token in usable multiple times and does invalidate after usage. Only after a timeout.
+Keep in mind: The token is usable multiple times and does not invalidate after usage. Only after a timeout.
 
 ## Configure the Authentication Provider
 
@@ -70,8 +70,10 @@ Use one of the ViewHelpers...
 	protected $hmacService;
 
 	public function myFunction() {
+	    // ...
 		$theUserName = 'username';
-		$loginLink = $this->hmacService->generateHmacAuthenticationQueryStringPart($theUserName);
+		$loginLinkQueryPart = $this->hmacService->generateHmacAuthenticationQueryStringPart($theUserName);
+		// ...
 	}
 
 ```

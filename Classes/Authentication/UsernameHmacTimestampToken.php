@@ -9,8 +9,6 @@ use Neos\Flow\Annotations as Flow;
 
 /**
  * Token to authenticate with a hmac
- *
- * @Flow\Scope("singleton")
  */
 class UsernameHmacTimestampToken extends \Neos\Flow\Security\Authentication\Token\AbstractToken {
 
