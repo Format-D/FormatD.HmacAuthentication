@@ -4,7 +4,7 @@
     "type": "neos-package",
     "license": "MIT",
     "require": {
-        "neos/flow": ">=4.0"
+        "neos/flow": ">=4.0 <6.0"
     },
     "suggest": {
     },

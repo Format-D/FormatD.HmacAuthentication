@@ -6,6 +6,24 @@ Authentication is done by passing username, timestamp and a hmac. For generating
 
 Keep in mind: The token is usable multiple times and does not invalidate after usage. Only after a timeout.
 
+### Kompatiblität
+
+Versioning scheme:
+
+     1.0.0 
+     | | |
+     | | Bugfix Releases (non breaking)
+     | Neos Compatibility Releases (non breaking except framework dependencies)
+     Feature Releases (breaking)
+
+Releases und compatibility:
+
+| Package-Version | Neos Flow Version      |
+|-----------------|------------------------|
+| 1.1.x           | >= 6.x                 |
+| 1.0.x           | 4.x - 5.x              |
+
+
 ## Configure the Authentication Provider
 
 In addition to your usual PersistedUsernamePasswordProvider you have to add a second UsernameHmacTimestampProvider provider to the configuration. 
