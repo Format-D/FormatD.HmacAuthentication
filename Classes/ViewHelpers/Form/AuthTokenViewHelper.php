@@ -41,24 +41,23 @@ class AuthTokenViewHelper extends \Neos\FluidAdaptor\ViewHelpers\Form\AbstractFo
      */
     public function initializeArguments()
     {
-		// this form field needs no other arguments
+        $this->registerArgument('accountIdentifier', 'string', 'accountIdentifier to authenticate with', true);
     }
 
     /**
      * Renders a hidden field with authToken.
      *
-	 * @param string $accountIdentifier
      * @return string
      * @api
      */
-    public function render($accountIdentifier)
+    public function render()
     {
         $name = '__authentication[HmacAuthentication][authToken]';
         $this->registerFieldNameForFormTokenGeneration($name);
 
         $this->tag->addAttribute('type', 'hidden');
         $this->tag->addAttribute('name', $name);
-        $this->tag->addAttribute('value', $this->hmacService->encodeAuthToken($accountIdentifier));
+        $this->tag->addAttribute('value', $this->hmacService->encodeAuthToken($this->arguments['accountIdentifier']));
 
         $this->addAdditionalIdentityPropertiesIfNeeded();
         $this->setErrorClassAttribute();
