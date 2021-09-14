@@ -2,14 +2,14 @@
 namespace FormatD\HmacAuthentication\Authentication;
 
 
+use FormatD\HmacAuthentication\Domain\Model\HmacToken;
+use FormatD\HmacAuthentication\Service\HmacService;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Security\Account;
 use Neos\Flow\Security\AccountRepository;
-use Neos\Flow\Security\Authentication\Token\UsernamePassword;
-use Neos\Flow\Security\Authentication\Token\UsernamePasswordHttpBasic;
+use Neos\Flow\Security\Authentication\TokenAndProviderFactoryInterface;
 use Neos\Flow\Security\Authentication\TokenInterface;
 use Neos\Flow\Security\Context;
-use Neos\Flow\Security\Cryptography\HashService;
 use Neos\Flow\Security\Exception\UnsupportedAuthenticationTokenException;
 
 /**
@@ -32,6 +32,12 @@ class UsernameHmacTimestampProvider extends \Neos\Flow\Security\Authentication\P
     protected $hmacService;
 
     /**
+     * @Flow\Inject
+     * @var TokenAndProviderFactoryInterface
+     */
+    protected $tokenAndProviderFactory;
+
+    /**
      * @var Context
      * @Flow\Inject
      */
@@ -44,6 +50,12 @@ class UsernameHmacTimestampProvider extends \Neos\Flow\Security\Authentication\P
     protected $persistenceManager;
 
     /**
+     * @Flow\InjectConfiguration(package="FormatD.HmacAuthentication.allowedAuthenticationProviders")
+     * @var array
+     */
+    protected $allowedAuthenticationProviders;
+
+    /**
      * Returns the class names of the tokens this provider can authenticate.
      *
      * @return array
@@ -51,6 +63,43 @@ class UsernameHmacTimestampProvider extends \Neos\Flow\Security\Authentication\P
     public function getTokenClassNames()
     {
         return [UsernameHmacTimestampToken::class];
+    }
+
+    /**
+     * @param string $alias
+     * @return false|string
+     */
+    protected function getAuthenticationProviderNameByAlias($alias) {
+        if(!is_array($this->allowedAuthenticationProviders)) {
+            return false;
+        }
+        if(!key_exists($alias, $this->allowedAuthenticationProviders)) {
+            return false;
+        }
+        $name = $this->allowedAuthenticationProviders[$alias];
+        return strlen($name) > 0 ? $name : false;
+    }
+
+    /**
+     * @param HmacToken $hmacToken
+     */
+    protected function getAuthenticationProviderNameWithHmacToken($hmacToken) {
+        if($hmacToken->hasPayloadEntry(HmacService::HTK_Provider)) {
+            $tokenAuthenticationProviderAlias = $hmacToken->getPayloadEntry(HmacService::HTK_Provider);
+            if($authenticationProviderName = $this->getAuthenticationProviderNameByAlias($tokenAuthenticationProviderAlias)) {
+                return $authenticationProviderName;
+            }
+        }
+
+        return $this->options['mainAuthenticationProviderName'] ? $this->options['mainAuthenticationProviderName'] : $this->name;
+    }
+
+    /**
+     * @param HmacToken $hmacToken
+     * @return mixed
+     */
+    protected function getUsernameFromHmacToken($hmacToken) {
+        return $hmacToken->getPayloadEntry(HmacService::HTK_Username);
     }
 
     /**
@@ -76,31 +125,35 @@ class UsernameHmacTimestampProvider extends \Neos\Flow\Security\Authentication\P
             $authenticationToken->setAuthenticationStatus(TokenInterface::NO_CREDENTIALS_GIVEN);
         }
 
-        if (!is_array($credentials) || !isset($credentials['username']) || !isset($credentials['hmac']) || !isset($credentials['timestamp'])) {
+        if (!is_array($credentials) || !isset($credentials[UsernameHmacTimestampToken::CRED_TOKEN])) {
             return;
         }
 
-        $providerName = $this->options['mainAuthenticationProviderName'] ? $this->options['mainAuthenticationProviderName'] : $this->name;
+        $hmacToken = HmacToken::FromJson($credentials[UsernameHmacTimestampToken::CRED_TOKEN]);
+
+        $providerName = $this->getAuthenticationProviderNameWithHmacToken($hmacToken);
+        $userName = $this->getUsernameFromHmacToken($hmacToken);
+
         $accountRepository = $this->accountRepository;
-        $this->securityContext->withoutAuthorizationChecks(function () use ($credentials, $providerName, $accountRepository, &$account) {
-            $account = $accountRepository->findActiveByAccountIdentifierAndAuthenticationProviderName($credentials['username'], $providerName);
+        $this->securityContext->withoutAuthorizationChecks(function () use ($credentials, $userName, $providerName, $accountRepository, &$account) {
+            $account = $accountRepository->findActiveByAccountIdentifierAndAuthenticationProviderName($userName, $providerName);
         });
 
         $authenticationToken->setAuthenticationStatus(TokenInterface::WRONG_CREDENTIALS);
 
+        $isHmacTokenValid = $this->hmacService->validateToken($hmacToken);
+
         if ($account === null) {
-        	// validate anyway to prevent timing attacks
-            $this->hmacService->validateHmac($credentials['username'], $credentials['timestamp'], $credentials['hmac']);
+            // Return after token hmac validation to prevent timing attacks
             return;
         }
 
-        if ($this->hmacService->validateHmac($credentials['username'], $credentials['timestamp'], $credentials['hmac'])) {
+        if ($isHmacTokenValid) {
             $account->authenticationAttempted(TokenInterface::AUTHENTICATION_SUCCESSFUL);
             $authenticationToken->setAuthenticationStatus(TokenInterface::AUTHENTICATION_SUCCESSFUL);
             $authenticationToken->setAccount($account);
-        } else {
-            $account->authenticationAttempted(TokenInterface::WRONG_CREDENTIALS);
         }
+
         $this->accountRepository->update($account);
         $this->persistenceManager->whitelistObject($account);
     }

@@ -29,7 +29,7 @@ Releases und compatibility:
 In addition to your usual PersistedUsernamePasswordProvider you have to add a second UsernameHmacTimestampProvider provider to the configuration. 
 Set the providerOption "mainAuthenticationProviderName" to the name of your PersistedUsernamePasswordProvider so that only the accounts of this provider can use the magic links.
 
-```
+```yaml
 Neos:
   Flow:
     security:
@@ -48,10 +48,26 @@ Neos:
                 '@action': 'index'
 ```
 
+### Multiple AuthenticationProvider
+
+To be able to use different AuthenticationProvider you have to add them to the `allowedAuthenticationProviders` configuration and pass the AuthenticationProviderName as the second parameter.
+
+```yaml
+FormatD:
+  HmacAuthentication:
+    allowedAuthenticationProviders:
+      user: 'FormatD.UserManagementPlugin:Login'
+      singleSignOn: 'Project.Site:SingleSignOnLogin'
+```
+
+```php
+$this->hmacService->encodeAuthToken($accountIdentifier, $authenticationProviderName);
+```
+
 ## Authentication on button click:
 
 
-```
+```html
 {namespace hmacauth=FormatD\HmacAuthentication\ViewHelpers}
 
 <f:form package="myPackage" action="login" controller="authentication">
@@ -70,16 +86,16 @@ Always prefer the submit button solution mentioned above.
 There are two ways how to generate a authentication link: 
 Use one of the ViewHelpers...
 
-```
+```html
 {namespace hmacauth=FormatD\HmacAuthentication\ViewHelpers}
 <hmacauth:link.authenticatedAction action="myAction" controller="MyController">Login to MyWebsite</f:link.authenticatedAction>
 ```
-```
+```html
 {namespace hmacauth=FormatD\HmacAuthentication\ViewHelpers}
 <hmacauth:uri.authenticatedAction action="myAction" controller="MyController" />
 ```
 ...or use the hmacService directly in your code:
-```
+```php
 
 	/**
 	 * @Flow\Inject
@@ -100,7 +116,7 @@ Use one of the ViewHelpers...
 
 If you want to use the authToken in your code (for example to authenticate something else) just use the service class
 
-```
+```php
 	$authToken = $this->hmacService->encodeAuthToken($theUserName);
 	
 	$timestampIdentifierAndHmac = $this->hmacService->decodeAndValidateAuthToken($authToken);

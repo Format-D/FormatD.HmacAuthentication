@@ -5,6 +5,7 @@ namespace FormatD\HmacAuthentication\Service;
  * This file is part of the FormatD.HmacAuthentication package.
  */
 
+use FormatD\HmacAuthentication\Domain\Model\HmacToken;
 use Neos\Flow\Annotations as Flow;
 
 /**
@@ -13,7 +14,10 @@ use Neos\Flow\Annotations as Flow;
  */
 class HmacService {
 
-	/**
+    const HTK_Username = 'username';
+    const HTK_Provider = 'authenticationProviderAlias';
+
+    /**
 	 * @Flow\Inject
 	 * @var \Neos\Flow\Security\Cryptography\HashService
 	 */
@@ -31,17 +35,24 @@ class HmacService {
 	 */
 	protected $hmacTimeoutInterval;
 
-	/**
+    /**
+     * @Flow\InjectConfiguration(package="FormatD.HmacAuthentication.allowedAuthenticationProviders")
+     * @var array
+     */
+    protected $allowedAuthenticationProviders;
+
+    /**
 	 * @param string $accountIdentifier
+     * @param string $authenticationProviderName
 	 */
-	public function generateHmacAuthenticationQueryStringPart($accountIdentifier)
+	public function generateHmacAuthenticationQueryStringPart($accountIdentifier, string $authenticationProviderName = null)
 	{
-		return '__authentication[HmacAuthentication][authToken]=' . $this->encodeAuthToken($accountIdentifier);
+		return '__authentication[HmacAuthentication][authToken]=' . $this->encodeAuthToken($accountIdentifier, $authenticationProviderName);
 	}
 
 	/**
 	 * @param \Neos\Flow\Mvc\ActionRequest $actionRequest
-	 * @return array
+	 * @return HmacToken
 	 */
 	public function getCredentialsFromActionRequest(\Neos\Flow\Mvc\ActionRequest $actionRequest)
 	{
@@ -56,40 +67,55 @@ class HmacService {
 		return $this->decodeAuthToken($varsEncoded);
 	}
 
-	/**
-	 * @param string $accountIdentifier
-	 * @return string
-	 */
-	public function encodeAuthToken($accountIdentifier)
-	{
+    /**
+     * @param string $name
+     * @return string|null
+     */
+	public function getAuthenticationProviderAliasFromName(string $name) {
+        foreach ($this->allowedAuthenticationProviders as $alias => $provider) {
+            if($name === $provider) {
+                return $alias;
+            }
+        }
+        return null;
+    }
 
+    /**
+     * @param string $accountIdentifier
+     * @param string|null $authenticationProviderName
+     * @return string
+     * @throws \FormatD\HmacAuthentication\Exception
+     */
+	public function encodeAuthToken($accountIdentifier, string $authenticationProviderName = null)
+	{
 		if (strlen($accountIdentifier) < 1) {
 			throw new \FormatD\HmacAuthentication\Exception('Accountidentifier empty', 1513764288);
 		}
 
-		$vars = array (
-			'username' => $accountIdentifier,
-			'hmac' => $this->generateHmac($accountIdentifier, $this->now->getTimestamp()),
-			'timestamp' => $this->now->getTimestamp()
-		);
+		$token = new HmacToken();
 
-		return urlencode(base64_encode(json_encode($vars)));
+		$token->setTimestamp($this->now->getTimestamp());
+        $token->setPayloadEntry(self::HTK_Username, $accountIdentifier);
+
+        $authenticationProviderAlias = $this->getAuthenticationProviderAliasFromName($authenticationProviderName);
+		if($authenticationProviderAlias !== null) {
+		    $token->setPayloadEntry(self::HTK_Provider, $authenticationProviderAlias);
+        }
+
+		$hmac = $this->generateHmac($token->getHashData(), $this->now->getTimestamp());
+        $token->setHmac($hmac);
+
+		return urlencode(base64_encode($token->toJson()));
 	}
 
 	/**
 	 * @param string $authToken
-	 * @return object
+	 * @return HmacToken
 	 */
 	public function decodeAuthToken($authToken)
 	{
-		$varsDecoded = json_decode(base64_decode(urldecode($authToken)));
-
-		if (!is_object($varsDecoded)) {
-			return NULL;
-		}
-
-		return $varsDecoded;
-	}
+		return HmacToken::FromJson(base64_decode(urldecode($authToken)));
+    }
 
 	/**
 	 * @param string $authToken
@@ -97,13 +123,13 @@ class HmacService {
 	 */
 	public function decodeAndValidateAuthToken($authToken)
 	{
-		$varsDecoded = $this->decodeAuthToken($authToken);
+		$token = $this->decodeAuthToken($authToken);
 
-		if (!$varsDecoded || !$this->validateHmac($varsDecoded->username, $varsDecoded->timestamp, $varsDecoded->hmac)) {
+		if (!$this->validateToken($authToken)) {
 			throw new \FormatD\HmacAuthentication\Exception('Invalid Auth Token', 1532459848);
 		}
 
-		return $varsDecoded;
+		return $token;
 	}
 
 	/**
@@ -114,6 +140,14 @@ class HmacService {
 	{
 		return $this->hashService->generateHmac($string . '|' . $timestamp);
 	}
+
+    /**
+     * @param HmacToken $token
+     * @return bool
+     */
+	public function validateToken($token) {
+        return $this->validateHmac($token->getHashData(), $token->getTimestamp(), $token->getHmac());
+    }
 
 	/**
 	 * @param string $string
