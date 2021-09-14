@@ -12,12 +12,14 @@ use Neos\Flow\Annotations as Flow;
  */
 class UsernameHmacTimestampToken extends \Neos\Flow\Security\Authentication\Token\AbstractToken {
 
+    const CRED_TOKEN = 'token';
+
 	/**
 	 * The password credentials
 	 * @var array
 	 * @Flow\Transient
 	 */
-	protected $credentials = ['username' => '', 'hmac' => '', 'timestamp' => ''];
+	protected $credentials = [self::CRED_TOKEN => ''];
 
 	/**
 	 * @var \Neos\Flow\Utility\Environment
@@ -43,12 +45,10 @@ class UsernameHmacTimestampToken extends \Neos\Flow\Security\Authentication\Toke
 	 */
 	public function updateCredentials(\Neos\Flow\Mvc\ActionRequest $actionRequest)
 	{
-		$credentials = $this->hmacService->getCredentialsFromActionRequest($actionRequest);
+		$token = $this->hmacService->getCredentialsFromActionRequest($actionRequest);
 
-		if ($credentials) {
-			$this->credentials['username'] = $credentials->username;
-			$this->credentials['hmac'] = $credentials->hmac;
-			$this->credentials['timestamp'] = $credentials->timestamp;
+		if ($token) {
+		    $this->credentials[self::CRED_TOKEN] = $token->toJson();
 			$this->setAuthenticationStatus(self::AUTHENTICATION_NEEDED);
 		}
 	}
@@ -60,7 +60,8 @@ class UsernameHmacTimestampToken extends \Neos\Flow\Security\Authentication\Toke
 	 */
 	public function __toString()
 	{
-		return 'Username: "' . $this->credentials['username'] . '", Hmac: "***", Timestamp: "' . $this->credentials['timestamp'] . '" ';
+	    $token = $this->credentials[self::CRED_TOKEN];
+		return 'Token: "' . $token . '"';
 	}
 
 }
