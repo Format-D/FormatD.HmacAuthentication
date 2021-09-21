@@ -97,9 +97,11 @@ class HmacService {
 		$token->setTimestamp($this->now->getTimestamp());
         $token->setPayloadEntry(self::HTK_Username, $accountIdentifier);
 
-        $authenticationProviderAlias = $this->getAuthenticationProviderAliasFromName($authenticationProviderName);
-		if($authenticationProviderAlias !== null) {
-		    $token->setPayloadEntry(self::HTK_Provider, $authenticationProviderAlias);
+        if ($authenticationProviderName) {
+            $authenticationProviderAlias = $this->getAuthenticationProviderAliasFromName($authenticationProviderName);
+            if($authenticationProviderAlias !== null) {
+                $token->setPayloadEntry(self::HTK_Provider, $authenticationProviderAlias);
+            }
         }
 
 		$hmac = $this->generateHmac($token->getHashData(), $this->now->getTimestamp());
