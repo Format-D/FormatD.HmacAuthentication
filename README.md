@@ -40,6 +40,8 @@ Neos:
             providerOptions:
               # For an account with this authentication provider name will be searched:
               mainAuthenticationProviderName: 'My.Website:FrontendLoginProvider'
+              # optionally only track failed authentication attempts (possible values: 'failed', 'successful', true)
+              #trackAuthenticationAttempts: 'failed'
             entryPoint: 'WebRedirect'
             entryPointOptions:
               routeValues:

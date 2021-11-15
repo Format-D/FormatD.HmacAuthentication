@@ -149,9 +149,13 @@ class UsernameHmacTimestampProvider extends \Neos\Flow\Security\Authentication\P
         }
 
         if ($isHmacTokenValid) {
-            $account->authenticationAttempted(TokenInterface::AUTHENTICATION_SUCCESSFUL);
+            if (!isset($this->options['trackAuthenticationAttempts']) || $this->options['trackAuthenticationAttempts'] === true || $this->options['trackAuthenticationAttempts'] === 'successful') {
+                $account->authenticationAttempted(TokenInterface::AUTHENTICATION_SUCCESSFUL);
+            }
             $authenticationToken->setAuthenticationStatus(TokenInterface::AUTHENTICATION_SUCCESSFUL);
             $authenticationToken->setAccount($account);
+        } else if (!isset($this->options['trackAuthenticationAttempts']) || $this->options['trackAuthenticationAttempts'] === true || $this->options['trackAuthenticationAttempts'] === 'failed') {
+            $account->authenticationAttempted(TokenInterface::WRONG_CREDENTIALS);
         }
 
         $this->accountRepository->update($account);
