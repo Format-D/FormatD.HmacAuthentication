@@ -159,6 +159,6 @@ class UsernameHmacTimestampProvider extends \Neos\Flow\Security\Authentication\P
         }
 
         $this->accountRepository->update($account);
-        $this->persistenceManager->whitelistObject($account);
+        $this->persistenceManager->allowObject($account);
     }
 }
